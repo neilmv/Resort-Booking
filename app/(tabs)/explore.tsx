@@ -1,112 +1,270 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import {
+  Alert,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { useAuth } from '../../context/AuthContext';
+import { api, API_URL } from '../../utils/api';
 
-import { Collapsible } from '@/components/ui/collapsible';
-import { ExternalLink } from '@/components/external-link';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Fonts } from '@/constants/theme';
+interface Resort {
+  id: string;
+  name: string;
+  description: string;
+  location: string;
+  price_per_night: number;
+  rating: number;
+  image_url: string;
+  amenities: string[];
+  available_rooms: number;
+}
 
-export default function TabTwoScreen() {
+export default function ExploreScreen() {
+  const [resorts, setResorts] = useState<Resort[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filteredResorts, setFilteredResorts] = useState<Resort[]>([]);
+  const router = useRouter();
+  const { user } = useAuth();
+
+  useEffect(() => {
+    loadResorts();
+  }, []);
+
+  useEffect(() => {
+    if (searchQuery) {
+      const filtered = resorts.filter(resort =>
+        resort.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        resort.location.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+      setFilteredResorts(filtered);
+    } else {
+      setFilteredResorts(resorts);
+    }
+  }, [searchQuery, resorts]);
+
+  const loadResorts = async () => {
+    try {
+      const data = await api.getResorts();
+      setResorts(data);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to load resorts');
+    }
+  };
+
+  const handleResortPress = (resort: Resort) => {
+    if (!user) {
+      Alert.alert('Login Required', 'Please login to view resort details', [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Login', onPress: () => router.push('/login') }
+      ]);
+      return;
+    }
+    router.push(`/modal?id=${resort.id}`);
+  };
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
-      headerImage={
-        <IconSymbol
-          size={310}
-          color="#808080"
-          name="chevron.left.forwardslash.chevron.right"
-          style={styles.headerImage}
+    <View style={styles.container}>
+      <View style={styles.searchContainer}>
+        <Ionicons name="search" size={20} color="#666" style={styles.searchIcon} />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search resorts or locations..."
+          value={searchQuery}
+          onChangeText={setSearchQuery}
         />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText
-          type="title"
-          style={{
-            fontFamily: Fonts.rounded,
-          }}>
-          Explore
-        </ThemedText>
-      </ThemedView>
-      <ThemedText>This app includes example code to help you get started.</ThemedText>
-      <Collapsible title="File-based routing">
-        <ThemedText>
-          This app has two screens:{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/explore.tsx</ThemedText>
-        </ThemedText>
-        <ThemedText>
-          The layout file in <ThemedText type="defaultSemiBold">app/(tabs)/_layout.tsx</ThemedText>{' '}
-          sets up the tab navigator.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/router/introduction">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Android, iOS, and web support">
-        <ThemedText>
-          You can open this project on Android, iOS, and the web. To open the web version, press{' '}
-          <ThemedText type="defaultSemiBold">w</ThemedText> in the terminal running this project.
-        </ThemedText>
-      </Collapsible>
-      <Collapsible title="Images">
-        <ThemedText>
-          For static images, you can use the <ThemedText type="defaultSemiBold">@2x</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">@3x</ThemedText> suffixes to provide files for
-          different screen densities
-        </ThemedText>
-        <Image
-          source={require('@/assets/images/react-logo.png')}
-          style={{ width: 100, height: 100, alignSelf: 'center' }}
-        />
-        <ExternalLink href="https://reactnative.dev/docs/images">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Light and dark mode components">
-        <ThemedText>
-          This template has light and dark mode support. The{' '}
-          <ThemedText type="defaultSemiBold">useColorScheme()</ThemedText> hook lets you inspect
-          what the user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Animations">
-        <ThemedText>
-          This template includes an example of an animated component. The{' '}
-          <ThemedText type="defaultSemiBold">components/HelloWave.tsx</ThemedText> component uses
-          the powerful{' '}
-          <ThemedText type="defaultSemiBold" style={{ fontFamily: Fonts.mono }}>
-            react-native-reanimated
-          </ThemedText>{' '}
-          library to create a waving hand animation.
-        </ThemedText>
-        {Platform.select({
-          ios: (
-            <ThemedText>
-              The <ThemedText type="defaultSemiBold">components/ParallaxScrollView.tsx</ThemedText>{' '}
-              component provides a parallax effect for the header image.
-            </ThemedText>
-          ),
-        })}
-      </Collapsible>
-    </ParallaxScrollView>
+        {searchQuery ? (
+          <TouchableOpacity onPress={() => setSearchQuery('')}>
+            <Ionicons name="close-circle" size={20} color="#666" />
+          </TouchableOpacity>
+        ) : null}
+      </View>
+
+      <ScrollView style={styles.content}>
+        <Text style={styles.sectionTitle}>
+          {searchQuery ? 'Search Results' : 'All Resorts'}
+        </Text>
+
+        {filteredResorts.map((resort) => (
+          <TouchableOpacity
+            key={resort.id}
+            style={styles.resortCard}
+            onPress={() => handleResortPress(resort)}
+          >
+            <Image source={{ uri: `${API_URL}${resort.image_url}` }} style={styles.resortImage} />
+            <View style={styles.resortDetails}>
+              <View style={styles.resortHeader}>
+                <Text style={styles.resortName}>{resort.name}</Text>
+                <View style={styles.rating}>
+                  <Ionicons name="star" size={16} color="#FFD700" />
+                  <Text style={styles.ratingText}>{resort.rating}</Text>
+                </View>
+              </View>
+              <Text style={styles.resortLocation}>
+                <Ionicons name="location-outline" size={14} color="#666" />
+                {resort.location}
+              </Text>
+              <Text style={styles.resortDescription} numberOfLines={2}>
+                {resort.description}
+              </Text>
+              <View style={styles.amenities}>
+                {resort.amenities.slice(0, 3).map((amenity, index) => (
+                  <View key={index} style={styles.amenity}>
+                    <Text style={styles.amenityText}>{amenity}</Text>
+                  </View>
+                ))}
+                {resort.amenities.length > 3 && (
+                  <View style={styles.amenity}>
+                    <Text style={styles.amenityText}>+{resort.amenities.length - 3}</Text>
+                  </View>
+                )}
+              </View>
+              <View style={styles.resortFooter}>
+                <Text style={styles.price}>${resort.price_per_night}/night</Text>
+                <Text style={styles.availability}>
+                  {resort.available_rooms > 0 ? `${resort.available_rooms} rooms left` : 'Sold Out'}
+                </Text>
+              </View>
+            </View>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
+  container: {
+    flex: 1,
+    backgroundColor: '#F8F9FA',
+    paddingTop: 60,
   },
-  titleContainer: {
+  searchContainer: {
     flexDirection: 'row',
-    gap: 8,
+    alignItems: 'center',
+    backgroundColor: '#FFF',
+    margin: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  searchIcon: {
+    marginRight: 12,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#333',
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: 20,
+  },
+  sectionTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 20,
+  },
+  resortCard: {
+    backgroundColor: '#FFF',
+    borderRadius: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+    overflow: 'hidden',
+  },
+  resortImage: {
+    width: '100%',
+    height: 160,
+  },
+  resortDetails: {
+    padding: 16,
+  },
+  resortHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+  },
+  resortName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    flex: 1,
+    marginRight: 8,
+  },
+  rating: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF0F0',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  ratingText: {
+    color: '#FF385C',
+    fontWeight: 'bold',
+    marginLeft: 4,
+  },
+  resortLocation: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  resortDescription: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 12,
+    lineHeight: 20,
+  },
+  amenities: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 12,
+  },
+  amenity: {
+    backgroundColor: '#F8F9FA',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  amenityText: {
+    fontSize: 12,
+    color: '#666',
+    fontWeight: '500',
+  },
+  resortFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  price: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#FF385C',
+  },
+  availability: {
+    fontSize: 12,
+    color: '#666',
+    fontWeight: '500',
   },
 });
